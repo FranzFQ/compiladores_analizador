@@ -7,7 +7,7 @@ int resta(int a, int b) {
     if a <= b // b == a;
       while True;
         print("Hello");
-  int c = a * a + b;
+  int c = a * a / b;
   return c;
 }
 """
@@ -160,6 +160,7 @@ class Parser:
 
     elif self.obtener_token_actual()[1] == "def":
       self.coincidir("KEYWORD")
+      self.operration_def()
 
 
     else:
@@ -221,7 +222,16 @@ class Parser:
     return 0
   
   def operration_def(self):
-    pass    
+    self.coincidir("IDENTIFIER")
+    self.coincidir("DELIMITER")
+    if self.obtener_token_actual()[0] == "DELIMITER":
+      self.coincidir("DELIMITER")
+      return 0
+    else:
+      self.coincidir("IDENTIFIER")
+      self.coincidir("DELIMITER")
+      self.coincidir("DELIMITER")
+      return 0
 
 # Aquí se probará el analizador sintáctico
 try:
