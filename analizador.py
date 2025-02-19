@@ -110,28 +110,33 @@ class Parser:
     self.funcion()
 
   def funcion(self):
-
     # Gramática para una función: int IDENTIFICADOR (int IDENTIFICADOR*) {cuerpo}
-    self.coincidir('KEYWORD') # Tipo de retorno (ej. int)
-
-    self.coincidir('IDENTIFIER') # Nombre de la función
+    tipo_retorno = self.coincidir('KEYWORD') # Tipo de retorno (ej. int)
+    nombre_funcion = self.coincidir('IDENTIFIER') # Nombre de la función
     self.coincidir('DELIMITER') # Se espera un "("
-    self.parametros()
+    parametros = self.parametros()
     self.coincidir('DELIMITER') # Se espera un ")"
     self.coincidir('DELIMITER') # Se espera un "{"
-    self.cuerpo()
+    cuerpo = self.cuerpo()
     self.coincidir('DELIMITER') # Se espera un "}"
+    return NodoFuncion(nombre_funcion, parametros, cuerpo)
 
   def parametros(self):
+    parametros = []
+    # Reglas para parámetros: int IDENTIFICADOR(, int IDENTIFICADOR)*
     # Reglas para parámetros: int IDENTIFIER(, int IDENTIFIER)*
-    self.coincidir('KEYWORD') # Tipo del parámetro
-    self.coincidir('IDENTIFIER') # Nombre del parámetro
+    tipo = self.coincidir('KEYWORD') # Tipo del parámetro
+    nombre = self.coincidir('IDENTIFIER') # Nombre del parámetro
+    parametros.append(NodoParametro(tipo, nombre))
     while self.obtener_token_actual() and self.obtener_token_actual()[1] == ',':
       self.coincidir('DELIMITER') # Espera una ","
-      self.coincidir('KEYWORD') # Tipo del parámetro
-      self.coincidir('IDENTIFIER') # Nombre del parámetro
+      tipo = self.coincidir('KEYWORD') # Tipo del parámetro
+      nombre = self.coincidir('IDENTIFIER') # Nombre del parámetro
+      parametros.append(NodoParametro(tipo, nombre))
+    return parametros
 
   def cuerpo(self):
+    instrucciones = []
     # Gramática para el cuerpo de la función: return IDENTIFIER OPERATOR IDENTIFIER
     if self.obtener_token_actual()[1] == "if":
       self.coincidir("KEYWORD")
@@ -139,8 +144,7 @@ class Parser:
 
     elif self.obtener_token_actual()[1] == "return":
       self.coincidir("KEYWORD")
-      self.coincidir("IDENTIFIER")
-      self.coincidir("DELIMITER")
+      self.operation_return()
 
     elif self.obtener_token_actual()[1] == "print":
       self.coincidir("KEYWORD")
@@ -162,11 +166,19 @@ class Parser:
       self.coincidir("KEYWORD")
       self.operration_def()
 
-
-    else:
-      return 0
+    elif self.obtener_token_actual()[1] == "}":
+      return instrucciones
     
     return self.cuerpo()
+  
+  def operation_return(self):
+    self.coincidir("IDENTIFIER")
+    if self.obtener_token_actual()[0] == "DELIMITER":
+      self.coincidir("DELIMITER")
+      return 0
+    else:
+      self.coincidir("OPERATOR")
+      return self.operation_return()
   
   def operation_X(self):
     self.coincidir("IDENTIFIER")
@@ -175,8 +187,7 @@ class Parser:
       return 0
     else:
       self.coincidir("OPERATOR")
-      self.operation_X()
-      return 0
+      return self.operation_X()
 
   def operation_IF(self):
       self.coincidir("IDENTIFIER")
@@ -225,6 +236,7 @@ class Parser:
     self.coincidir("IDENTIFIER")
     self.coincidir("DELIMITER")
     if self.obtener_token_actual()[0] == "DELIMITER":
+      self.coincidir("DELIMITER")
       self.coincidir("DELIMITER")
       return 0
     else:
@@ -277,6 +289,8 @@ class NodoNumero(NodoAST):
   #Nodo que representa a un numero
   def __init__(self, valor):
     self.valor = valor
+
+  
 
 # Aquí se probará el analizador sintáctico
 try:
