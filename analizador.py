@@ -233,6 +233,51 @@ class Parser:
       self.coincidir("DELIMITER")
       return 0
 
+class NodoAST:
+  #Clase base para todos los nodos del AST
+  pass
+
+class NodoFuncion(NodoAST):
+  #Nodo que representa una funcion
+  def __init__(self, nombre, parametros, cuerpo):
+    self.nombre = nombre
+    self.parametro = parametros
+    self.cuerpo = cuerpo
+
+class NodoParametro(NodoAST):
+  #Nodo que representa un parametro de funcion
+  def __init__(self, tipo, nombre):
+    self.tipo = tipo 
+    self.nombre = nombre
+
+class NodoAsignacion(NodoAST):
+  #Nodo que representa una asignacion de variable
+  def __init__(self, nombre, expresion):
+    self.nombre = nombre
+    self.expresion = expresion
+
+class NodoOperacion(NodoAST):
+  #Nodo que representa una operacion aritmetica
+  def __init__(self, izquierda, operador, derecha):
+    self.izquerda = izquierda
+    self.derecha = derecha
+    self.operador = operador
+
+class NodoRetorno(NodoAST):
+  #Nodo que representa la sentencia o instruccion de retorno
+  def __init__(self, expresion):
+    self.expresion = expresion
+
+class NodoIdentificador(NodoAST):
+  #Nodo que representa a un identificador
+  def __init__(self, nombre):
+    self.nombre = nombre
+
+class NodoNumero(NodoAST):
+  #Nodo que representa a un numero
+  def __init__(self, valor):
+    self.valor = valor
+
 # Aquí se probará el analizador sintáctico
 try:
   print('Se inicia el análisis sintáctico')
