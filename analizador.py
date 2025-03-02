@@ -171,8 +171,6 @@ class Parser:
     
     return self.cuerpo()
 
- 
-  
   def operation_return(self):
     self.coincidir("IDENTIFIER")
     if self.obtener_token_actual()[0] == "DELIMITER":
