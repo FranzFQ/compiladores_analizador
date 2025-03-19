@@ -28,79 +28,170 @@ def tokenize(text):
 class NodoAST:
   #Clase base para todos los nodos del AST
   pass
+  def traducir(self):
+    raise NotImplementedError("Métpdp traducir() no implementado en este nodo.")
+  
+  def generar_codigo(self):
+    raise NotImplementedError("Método generar_codigo() no implementado en este nodo.")
 
 class NodoFunciones(NodoAST):
   #Nodo que representa una lista de funciones
-  def __init__(self, funcion ,funcion_siguiente):
+  def _init_(self, funcion ,funcion_siguiente):
     self.funcion = funcion
     self.funcion_siguiente = funcion_siguiente
 
 class NodoFuncion(NodoAST):
   #Nodo que representa una funcion
-  def __init__(self, nombre, parametros, cuerpo):
+  def _init_(self, nombre, parametros, cuerpo):
     self.nombre = nombre
     self.parametro = parametros
     self.cuerpo = cuerpo
 
+  def traducir(self):
+    params = ",".join(p.traducir()[1] for p in self.parametros)
+    cuerpo = "\n    ".join(c.traducir() for c in self.cuerpo)
+    return f"def {self.nombre}({params}):\n    {cuerpo}"
+
 class NodoParametro(NodoAST):
   #Nodo que representa un parametro de funcion
-  def __init__(self, tipo, nombre):
+  def _init_(self, tipo, nombre):
     self.tipo = tipo 
     self.nombre = nombre
 
+  def traducir(self):
+    return self.nombre
+
 class NodoAsignacion(NodoAST):
   #Nodo que representa una asignacion de variable
-  def __init__(self, nombre, expresion):
+  def _init_(self, nombre, expresion):
     self.nombre = nombre
     self.expresion = expresion
+    
+  def traducir(self):
+    return f"{self.nombre} = {self.expresion.traducir()}"
+  
+  def generar_codigo(self):
+    codigo = self.expresion.generar_codigo()
+    codigo += f"\n    mov [{self.nombre[1]}], eax; guardar resultado en {self.nombre[1]}"
 
 class NodoOperacion(NodoAST):
   #Nodo que representa una operacion aritmetica
-  def __init__(self, izquierda, operador, derecha):
+  def _init_(self, izquierda, operador, derecha):
     self.izquierda = izquierda
     self.derecha = derecha
     self.operador = operador
 
+  def traducir(self):
+    return f"{self.izquierda.traducir()} {self.operador[1]} {self.derecha.traducir()}"
+  
+  def generar_codigo(self):
+    codigo = []
+    codigo.append(self.izquierda.generar_codigo())
+    codigo.append("       push eax ; guardar en la pila")
+    
+    codigo.append(self.derecha.generar_codigo())
+    codigo.append("       pop ebx ; cargar en ebx el valor de la pila")
+    
+    if self.operador[1] == "+":
+      codigo.append("       add eax, ebx ; eax = eax + ebx")
+    elif self.operador[1] == "-":
+      codigo.append("       sub eax, ebx ; eax = eax - ebx")
+      codigo.append("       neg eax ; negar eax")
+      return 
+    
+
+
+  
+  def optimizar(self):
+    if isinstance(self.izquierda, NodoOperacion):
+      izquierda = self.izquierda.optimizar()
+    else:
+      izquierda =  self.izquierda
+      
+    if isinstance(self.derecha, NodoOperacion):
+      derecha = self.derecha.optimizar()
+    else:
+      derecha =  self.derecha
+    
+    #Si ambos operandos son numeros, evaluamos la operacion
+    if isinstance(izquierda, NodoNumero) and isinstance(derecha, NodoNumero):
+      if self.operador == '+':
+        return NodoNumero(izquierda.valor + derecha.valor)
+      elif self.operador == '-':
+        return NodoNumero(izquierda.valor - derecha.valor)
+      elif self.operador == '*':
+        return NodoNumero(izquierda.valor * derecha.valor)
+      elif self.operador == '/' and derecha.valor != 0:
+        return NodoNumero(izquierda.valor / derecha.valor)
+      
+      # simplificacion algebraica
+      if self.operador == '*' and isinstance(derecha, NodoNumero) and derecha.valor == 1:
+        return izquierda
+      if self.operador == '*' and isinstance(izquierda, NodoNumero) and derecha.valor == 1:
+        return derecha
+      if self.operador == '+' and isinstance(derecha, NodoNumero) and derecha.valor == 0:
+        return izquierda
+      if self.operador == '+' and isinstance(izquierda, NodoNumero) and derecha.valor == 0:
+        return derecha
+
+      #Si no se puede optimizar mas, devolvemos la misma operacion
+      return NodoOperacion(izquierda, self.operador, derecha)
+
 class NodoIf(NodoAST):
   #Nodo que representa una sentencia if
-  def __init__(self, condicion):
+  def _init_(self, condicion):
     self.condicion = condicion
 
 class NodoWhile(NodoAST):
   #Nodo que representa una sentencia while
-  def __init__(self, condicion):
+  def _init_(self, condicion):
     self.condicion = condicion
   
 class NodoFor(NodoAST):
   #Nodo que representa una sentencia for
-  def __init__(self, expresion1, expresion2, expresion3):
+  def _init_(self, expresion1, expresion2, expresion3):
     self.expresion1 = expresion1
     self.expresion2 = expresion2
     self.expresion3 = expresion3
 
 class NodoPrint(NodoAST):
   #Nodo que representa una sentencia print
-  def __init__(self, contenido):
+  def _init_(self, contenido):
     self.contenido = contenido
 
 class NodoRetorno(NodoAST):
   #Nodo que representa la sentencia o instruccion de retorno
-  def __init__(self, expresion):
+  def _init_(self, expresion):
     self.expresion = expresion
+
+  def traducir(self):
+    return f"return {self.expresion.traducir()}"
+  
+  def generar_codigo(self):
+    return self.expresion.generar_codigo() + "\n    ret ; retorno desde la subrutina"
 
 class NodoIdentificador(NodoAST):
   #Nodo que representa a un identificador
-  def __init__(self, nombre):
+  def _init_(self, nombre):
     self.nombre = nombre
+
+  def traducir(self):
+    return self.nombre
 
 class NodoNumero(NodoAST):
   #Nodo que representa a un numero
-  def __init__(self, valor):
+  def _init_(self, valor):
     self.valor = valor
+
+  def traducir(self):
+    return str(self.valor)
+  
+  def generar_codigo(self):
+    return f'       mov eax, {self.valor[1]} ; cargar numero {self.valor[1]} en eax'
 
 # Analizador sintáctico
 class Parser:
-  def __init__(self, tokens):
+  def _init_(self, tokens):
     self.tokens = tokens
     self.pos = 0
 
