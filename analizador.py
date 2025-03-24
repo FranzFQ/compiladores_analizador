@@ -2,20 +2,13 @@ import json
 from analizador_code import *
 
 texto = """
-int resta(int a, int b){
-  while a > b;
-    int c = a - b;
-   if a <= b // b == a;
-   return c;
-  }
-int suma(int a, int b){
+int main(int a, int b) {
   int c = a + b;
-  print("hola_mundo");
   return c;
-}
-any main(int a){
-  for (int i = c; i < a; i += b);
-  return main;
+
+  if a > b;
+
+
 }
 """
 

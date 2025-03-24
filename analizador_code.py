@@ -36,13 +36,17 @@ class NodoAST:
 
 class NodoFunciones(NodoAST):
   #Nodo que representa una lista de funciones
-  def _init_(self, funcion ,funcion_siguiente):
-    self.funcion = funcion
-    self.funcion_siguiente = funcion_siguiente
+  def _init_(self, funcion):
+    self.funcion = []
+
+    self.funcion.append(funcion)
+
+  def generar_codigo(self):
+    return "\n\n".join(f.generar_codigo() for f in self.funcion)
 
 class NodoFuncion(NodoAST):
   #Nodo que representa una funcion
-  def _init_(self, nombre, parametros, cuerpo):
+  def __init__(self, nombre, parametros, cuerpo):
     self.nombre = nombre
     self.parametro = parametros
     self.cuerpo = cuerpo
@@ -59,7 +63,7 @@ class NodoFuncion(NodoAST):
 
 class NodoParametro(NodoAST):
   #Nodo que representa un parametro de funcion
-  def _init_(self, tipo, nombre):
+  def __init__(self, tipo, nombre):
     self.tipo = tipo 
     self.nombre = nombre
 
@@ -68,7 +72,7 @@ class NodoParametro(NodoAST):
 
 class NodoAsignacion(NodoAST):
   #Nodo que representa una asignacion de variable
-  def _init_(self, nombre, expresion):
+  def __init__(self, nombre, expresion):
     self.nombre = nombre
     self.expresion = expresion
     
@@ -81,7 +85,7 @@ class NodoAsignacion(NodoAST):
 
 class NodoOperacion(NodoAST):
   #Nodo que representa una operacion aritmetica
-  def _init_(self, izquierda, operador, derecha):
+  def __init__(self, izquierda, operador, derecha):
     self.izquierda = izquierda
     self.derecha = derecha
     self.operador = operador
@@ -141,29 +145,60 @@ class NodoOperacion(NodoAST):
 
 class NodoIf(NodoAST):
   #Nodo que representa una sentencia if
-  def _init_(self, condicion):
+  def __init__(self, condicion):
     self.condicion = condicion
+
+  def traducir(self):
+    return f"if {self.condicion.traducir()}"
+
+  def generar_codigo(self):
+    codigo = []
+    codigo.append(self.condicion.generar_codigo())
+    codigo.append("       cmp eax, 0 ; comparar con 0")
+    return codigo
 
 class NodoWhile(NodoAST):
   #Nodo que representa una sentencia while
-  def _init_(self, condicion):
+  def __init__(self, condicion):
     self.condicion = condicion
+
+  def generar_codigo(self):
+    codigo = []
+    codigo.append(f"{self.condicion[1]}:")
+    codigo.append(self.condicion.generar_codigo())
+    codigo.append("       cmp eax, 0 ; comparar con 0")
+    return codigo
   
 class NodoFor(NodoAST):
   #Nodo que representa una sentencia for
-  def _init_(self, expresion1, expresion2, expresion3):
+  def __init__(self, expresion1, expresion2, expresion3):
     self.expresion1 = expresion1
     self.expresion2 = expresion2
     self.expresion3 = expresion3
 
+  def traducir(self):
+    pass
+  
+  def generar_codigo(self):
+    codigo = []
+    codigo.append(self.expresion1.generar_codigo())
+    codigo.append(f"{self.expresion2[1]}:")
+    codigo.append(self.expresion2.generar_codigo())
+    codigo.append("       cmp eax, 0 ; comparar con 0")
+    codigo.append(self.expresion3.generar_codigo())
+    return codigo
+
 class NodoPrint(NodoAST):
   #Nodo que representa una sentencia print
-  def _init_(self, contenido):
+  def __init__(self, contenido):
     self.contenido = contenido
+
+  def generar_codigo(self):
+    return f"print {self.contenido.generar_codigo()}"
 
 class NodoRetorno(NodoAST):
   #Nodo que representa la sentencia o instruccion de retorno
-  def _init_(self, expresion):
+  def __init__(self, expresion):
     self.expresion = expresion
 
   def traducir(self):
@@ -174,15 +209,18 @@ class NodoRetorno(NodoAST):
 
 class NodoIdentificador(NodoAST):
   #Nodo que representa a un identificador
-  def _init_(self, nombre):
+  def __init__(self, nombre):
     self.nombre = nombre
 
   def traducir(self):
     return self.nombre
+  
+  def generar_codigo(self):
+    return f"       mov eax, [{self.nombre[1]}] ; cargar valor de {self.nombre[1]} en eax"
 
 class NodoNumero(NodoAST):
   #Nodo que representa a un numero
-  def _init_(self, valor):
+  def __init__(self, valor):
     self.valor = valor
 
   def traducir(self):
@@ -193,7 +231,7 @@ class NodoNumero(NodoAST):
 
 # Analizador sintáctico
 class Parser:
-  def _init_(self, tokens):
+  def __init__(self, tokens):
     self.tokens = tokens
     self.pos = 0
 
