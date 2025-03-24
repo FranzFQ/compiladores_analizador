@@ -51,6 +51,11 @@ class NodoFuncion(NodoAST):
     params = ",".join(p.traducir()[1] for p in self.parametros)
     cuerpo = "\n    ".join(c.traducir() for c in self.cuerpo)
     return f"def {self.nombre}({params}):\n    {cuerpo}"
+  
+  def generar_codigo(self):
+    codigo = f"{self.nombre[1]}:\n"
+    codigo += "\n".join(c.generar_codigo() for c in self.cuerpo)
+    return codigo
 
 class NodoParametro(NodoAST):
   #Nodo que representa un parametro de funcion
@@ -99,9 +104,6 @@ class NodoOperacion(NodoAST):
       codigo.append("       neg eax ; negar eax")
       return 
     
-
-
-  
   def optimizar(self):
     if isinstance(self.izquierda, NodoOperacion):
       izquierda = self.izquierda.optimizar()

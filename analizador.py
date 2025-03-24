@@ -1,5 +1,5 @@
 import json
-import analizador_code
+from analizador_code import *
 
 texto = """
 int resta(int a, int b){
@@ -20,42 +20,44 @@ any main(int a){
 """
 
 def imprimir_ast(nodo):
-  if isinstance(nodo, analizador_code.NodoFunciones):
+  if isinstance(nodo, NodoFunciones):
     return {"Funciones": [imprimir_ast(nodo.funcion)] + [imprimir_ast(nodo.funcion_siguiente)]}
-  elif isinstance(nodo, analizador_code.NodoFuncion):
+  elif isinstance(nodo, NodoFuncion):
     return {"Funcion": nodo.nombre, 
             "Parametros": [imprimir_ast(p) for p in nodo.parametro],
             "Cuerpo": [imprimir_ast(c) for c in nodo.cuerpo]}
-  elif isinstance(nodo, analizador_code.NodoParametro):
+  elif isinstance(nodo, NodoParametro):
     return {"Parametro": nodo.nombre, "Tipo": nodo.tipo} 
-  elif isinstance(nodo, analizador_code.NodoAsignacion):
+  elif isinstance(nodo, NodoAsignacion):
     return {"Asignacion": nodo.nombre, "Expresion": imprimir_ast(nodo.expresion)}
-  elif isinstance(nodo, analizador_code.NodoOperacion):
+  elif isinstance(nodo, NodoOperacion):
     return {"Operacion": nodo.operador, 
             "Izquierda": imprimir_ast(nodo.izquierda),
             "Derecha": imprimir_ast(nodo.derecha)}
-  elif isinstance(nodo, analizador_code.NodoRetorno):
+  elif isinstance(nodo, NodoRetorno):
     return {"Return": nodo.expresion}
-  elif isinstance(nodo, analizador_code.NodoIdentificador):
+  elif isinstance(nodo, NodoIdentificador):
     return {"Identificador": nodo.nombre}
-  elif isinstance(nodo, analizador_code.NodoNumero):
+  elif isinstance(nodo, NodoNumero):
     return {"Numero": nodo.valor}
-  elif isinstance(nodo, analizador_code.NodoIf):
+  elif isinstance(nodo, NodoIf):
     return {"If": imprimir_ast(nodo.condicion)}
-  elif isinstance(nodo, analizador_code.NodoWhile):
+  elif isinstance(nodo, NodoWhile):
     return {"While": imprimir_ast(nodo.condicion)}
-  elif isinstance(nodo, analizador_code.NodoFor):
+  elif isinstance(nodo, NodoFor):
     return {"For": [imprimir_ast(nodo.expresion1), imprimir_ast(nodo.expresion2), imprimir_ast(nodo.expresion3)]}
-  elif isinstance(nodo, analizador_code.NodoPrint):
+  elif isinstance(nodo, NodoPrint):
     return {"Print": imprimir_ast(nodo.contenido)}
   return {}
 
 # Aquí se probará el analizador sintáctico
 try:
-  tokens = analizador_code.tokenize(texto)
+  tokens = tokenize(texto)
   print('Se inicia el análisis sintáctico')
-  parser = analizador_code.Parser(tokens)
+  parser = Parser(tokens)
   arbol_ast = parser.parsear()
+  codigo_asm = arbol_ast.generar_codigo()
+  print(codigo_asm)
   print('Análisis sintáctico exitoso')
   imprimir_ast(arbol_ast)
   print(json.dumps(imprimir_ast(arbol_ast), indent=1))
