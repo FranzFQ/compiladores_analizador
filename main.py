@@ -2,19 +2,23 @@ import json
 from analizador_code import *
 
 texto = """
-int main(int a, int b) {
+int main (int a, int b) {
   int c = a + b;
   return c;
+}
 
-  if a > b;
-
-
+int suma (int a, int b) {
+  if (a > b){
+    return a;
+  }
+  return b
+}
 }
 """
 
 def imprimir_ast(nodo):
   if isinstance(nodo, NodoFunciones):
-    return {"Funciones": [imprimir_ast(nodo.funcion)] + [imprimir_ast(nodo.funcion_siguiente)]}
+    return {"Funciones": [imprimir_ast(f) for f in nodo.funcion]}
   elif isinstance(nodo, NodoFuncion):
     return {"Funcion": nodo.nombre, 
             "Parametros": [imprimir_ast(p) for p in nodo.parametro],
@@ -49,11 +53,13 @@ try:
   print('Se inicia el análisis sintáctico')
   parser = Parser(tokens)
   arbol_ast = parser.parsear()
+  codigo_python = arbol_ast.traducir()
+  print(codigo_python)
   codigo_asm = arbol_ast.generar_codigo()
   print(codigo_asm)
-  print('Análisis sintáctico exitoso')
   imprimir_ast(arbol_ast)
   print(json.dumps(imprimir_ast(arbol_ast), indent=1))
+  print('Análisis sintáctico exitoso')
   
 except SyntaxError as e:
   print(e)

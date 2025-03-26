@@ -36,10 +36,17 @@ class NodoAST:
 
 class NodoFunciones(NodoAST):
   #Nodo que representa una lista de funciones
-  def _init_(self, funcion):
+  def __init__(self):
     self.funcion = []
-
+  
+  def agregar(self, funcion):
     self.funcion.append(funcion)
+
+  def traducir(self):
+    text = ""
+    for f in self.funcion:
+      text += f.traducir() + "\n\n"
+    return text
 
   def generar_codigo(self):
     return "\n\n".join(f.generar_codigo() for f in self.funcion)
@@ -52,9 +59,9 @@ class NodoFuncion(NodoAST):
     self.cuerpo = cuerpo
 
   def traducir(self):
-    params = ",".join(p.traducir()[1] for p in self.parametros)
+    params = ",".join(p.traducir() for p in self.parametro)
     cuerpo = "\n    ".join(c.traducir() for c in self.cuerpo)
-    return f"def {self.nombre}({params}):\n    {cuerpo}"
+    return f"def {self.nombre[1]}({params}):\n    {cuerpo}"
   
   def generar_codigo(self):
     codigo = f"{self.nombre[1]}:\n"
@@ -68,7 +75,7 @@ class NodoParametro(NodoAST):
     self.nombre = nombre
 
   def traducir(self):
-    return self.nombre
+    return self.nombre[1]
 
 class NodoAsignacion(NodoAST):
   #Nodo que representa una asignacion de variable
@@ -77,11 +84,14 @@ class NodoAsignacion(NodoAST):
     self.expresion = expresion
     
   def traducir(self):
-    return f"{self.nombre} = {self.expresion.traducir()}"
+    return f"{self.nombre[1]} = {self.expresion.traducir()}"
   
   def generar_codigo(self):
     codigo = self.expresion.generar_codigo()
+    if codigo is None:
+      codigo = ""
     codigo += f"\n    mov [{self.nombre[1]}], eax; guardar resultado en {self.nombre[1]}"
+    return codigo
 
 class NodoOperacion(NodoAST):
   #Nodo que representa una operacion aritmetica
@@ -106,7 +116,8 @@ class NodoOperacion(NodoAST):
     elif self.operador[1] == "-":
       codigo.append("       sub eax, ebx ; eax = eax - ebx")
       codigo.append("       neg eax ; negar eax")
-      return 
+      
+    return "\n".join(codigo)
     
   def optimizar(self):
     if isinstance(self.izquierda, NodoOperacion):
@@ -145,22 +156,33 @@ class NodoOperacion(NodoAST):
 
 class NodoIf(NodoAST):
   #Nodo que representa una sentencia if
-  def __init__(self, condicion):
+  def __init__(self, condicion, cuerpo):
     self.condicion = condicion
+    self.cuerpo = cuerpo
 
   def traducir(self):
-    return f"if {self.condicion.traducir()}"
+    cuerpo = "\n    ".join(c.traducir() for c in self.cuerpo)
+    return f"if {self.condicion.traducir()}: \n       {cuerpo}"
 
   def generar_codigo(self):
     codigo = []
     codigo.append(self.condicion.generar_codigo())
-    codigo.append("       cmp eax, 0 ; comparar con 0")
-    return codigo
+    codigo.append("    cmp eax, 0 ; comparar con 0")
+    codigo.append("    je fin_if")
+    codigo.extend([c.generar_codigo() for c in self.cuerpo])
+    codigo.append("fin_if:")
+    return "\n".join(codigo)
 
 class NodoWhile(NodoAST):
   #Nodo que representa una sentencia while
-  def __init__(self, condicion):
+  def __init__(self, condicion, cuerpo):
     self.condicion = condicion
+    self.cuerpo = cuerpo
+
+  def traducir(self):
+    cuerpo = "\n    ".join(c.traducir() for c in self.cuerpo)
+    return f"while {self.condicion.traducir()}: \n       {cuerpo}"
+
 
   def generar_codigo(self):
     codigo = []
@@ -171,10 +193,11 @@ class NodoWhile(NodoAST):
   
 class NodoFor(NodoAST):
   #Nodo que representa una sentencia for
-  def __init__(self, expresion1, expresion2, expresion3):
+  def __init__(self, expresion1, expresion2, expresion3, cuerpo):
     self.expresion1 = expresion1
     self.expresion2 = expresion2
     self.expresion3 = expresion3
+    self.cuepo = cuerpo
 
   def traducir(self):
     pass
@@ -202,10 +225,10 @@ class NodoRetorno(NodoAST):
     self.expresion = expresion
 
   def traducir(self):
-    return f"return {self.expresion.traducir()}"
+    return f"return {self.expresion[1]}"
   
   def generar_codigo(self):
-    return self.expresion.generar_codigo() + "\n    ret ; retorno desde la subrutina"
+    return self.expresion[1] + '\n    ret ; retorno desde la subrutina'
 
 class NodoIdentificador(NodoAST):
   #Nodo que representa a un identificador
@@ -213,10 +236,10 @@ class NodoIdentificador(NodoAST):
     self.nombre = nombre
 
   def traducir(self):
-    return self.nombre
+    return self.nombre[1]
   
   def generar_codigo(self):
-    return f"       mov eax, [{self.nombre[1]}] ; cargar valor de {self.nombre[1]} en eax"
+    return f'       mov eax, [{self.nombre[1]}] ; cargar valor de {self.nombre[1]} en eax'
 
 class NodoNumero(NodoAST):
   #Nodo que representa a un numero
@@ -224,7 +247,7 @@ class NodoNumero(NodoAST):
     self.valor = valor
 
   def traducir(self):
-    return str(self.valor)
+    return str(self.valor[1])
   
   def generar_codigo(self):
     return f'       mov eax, {self.valor[1]} ; cargar numero {self.valor[1]} en eax'
@@ -261,7 +284,11 @@ class Parser:
     cuerpo = self.cuerpo()
     self.coincidir('DELIMITER') # Se espera un "}"
     if self.obtener_token_actual() and  self.obtener_token_actual()[0] == "KEY":
-      return NodoFunciones(NodoFuncion(nombre_funcion, parametros, cuerpo), self.funcion())
+      funciones = NodoFunciones()
+      funcion = NodoFuncion(nombre_funcion, parametros, cuerpo)
+      funciones.agregar(funcion)
+      funciones.agregar(self.funcion())
+      return funciones
     else:
       return NodoFuncion(nombre_funcion, parametros, cuerpo)
 
@@ -315,10 +342,27 @@ class Parser:
     return izquierda
 
   def operation_IF(self):
+    cuerpo = []
     self.coincidir("KEYWORD")
+    self.coincidir("DELIMITER")
     condicion = self.expresion()
     self.coincidir("DELIMITER")
-    return NodoIf(condicion)
+    self.coincidir("DELIMITER")
+    while self.obtener_token_actual() and self.obtener_token_actual()[1] != "}":
+      if self.obtener_token_actual()[1] == "return":
+        cuerpo.append(self.retorno())
+      elif self.obtener_token_actual()[0] == "KEY":
+        cuerpo.append(self.asignacion())
+      elif self.obtener_token_actual()[1] == "if":
+        cuerpo.append(self.operation_IF())
+      elif self.obtener_token_actual()[1] == "while":
+        cuerpo.append(self.operation_while())
+      elif self.obtener_token_actual()[1] == "for":
+        cuerpo.append(self.operation_for())
+      elif self.obtener_token_actual()[1] == "print": 
+        cuerpo.append(self.operation_print())
+    self.coincidir("DELIMITER")
+    return NodoIf(condicion, cuerpo)
     
   def operation_print(self):
     self.coincidir("KEYWORD")
@@ -329,15 +373,30 @@ class Parser:
     return NodoPrint(contenido)
 
   def operation_while(self):
+    cuerpo = []
     self.coincidir("KEYWORD")
     if self.obtener_token_actual()[0] == "IDENTIFIER":
       condicion = self.expresion()
     elif self.obtener_token_actual()[0] == "BOOLEAN":
       condicion = self.coincidir("BOOLEAN")
+    while self.obtener_token_actual() and self.obtener_token_actual()[1] != "}":
+      if self.obtener_token_actual()[1] == "return":
+        cuerpo.append(self.retorno())
+      elif self.obtener_token_actual()[0] == "KEY":
+        cuerpo.append(self.asignacion())
+      elif self.obtener_token_actual()[1] == "if":
+        cuerpo.append(self.operation_IF())
+      elif self.obtener_token_actual()[1] == "while":
+        cuerpo.append(self.operation_while())
+      elif self.obtener_token_actual()[1] == "for":
+        cuerpo.append(self.operation_for())
+      elif self.obtener_token_actual()[1] == "print": 
+        cuerpo.append(self.operation_print())
     self.coincidir("DELIMITER")
-    return NodoWhile(condicion)
+    return NodoWhile(condicion, cuerpo)
   
   def operation_for(self):
+    cuerpo = []
     self.coincidir("KEYWORD")
     self.coincidir("DELIMITER")
     expresion1 = self.asignacion()
@@ -346,7 +405,21 @@ class Parser:
     expresion3 = self.expresion()
     self.coincidir("DELIMITER")
     self.coincidir("DELIMITER")
-    return NodoFor(expresion1, expresion2, expresion3)
+    while self.obtener_token_actual() and self.obtener_token_actual()[1] != "}":
+      if self.obtener_token_actual()[1] == "return":
+        cuerpo.append(self.retorno())
+      elif self.obtener_token_actual()[0] == "KEY":
+        cuerpo.append(self.asignacion())
+      elif self.obtener_token_actual()[1] == "if":
+        cuerpo.append(self.operation_IF())
+      elif self.obtener_token_actual()[1] == "while":
+        cuerpo.append(self.operation_while())
+      elif self.obtener_token_actual()[1] == "for":
+        cuerpo.append(self.operation_for())
+      elif self.obtener_token_actual()[1] == "print": 
+        cuerpo.append(self.operation_print())
+    self.coincidir("DELIMITER")
+    return NodoFor(expresion1, expresion2, expresion3, cuerpo)
   
   def retorno(self):
     self.coincidir("KEYWORD")
