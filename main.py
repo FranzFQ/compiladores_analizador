@@ -2,18 +2,21 @@ import json
 from analizador_code import *
 
 texto = """
-int main (int a, int b) {
-  int c = a + b;
-  return c;
-}
-
 int suma (int a, int b) {
   if (a > b){
     return a;
   }
-  return b
+  return b;
 }
+
+int main (){
+  int c = a + b;
+  int a = suma(a, b);
+  for (int i = 0, i < b, i += 1){
+  }
+  return c;
 }
+
 """
 
 def imprimir_ast(nodo):
@@ -53,12 +56,12 @@ try:
   print('Se inicia el análisis sintáctico')
   parser = Parser(tokens)
   arbol_ast = parser.parsear()
+  print(json.dumps(imprimir_ast(arbol_ast), indent=1))
   codigo_python = arbol_ast.traducir()
   print(codigo_python)
   codigo_asm = arbol_ast.generar_codigo()
   print(codigo_asm)
   imprimir_ast(arbol_ast)
-  print(json.dumps(imprimir_ast(arbol_ast), indent=1))
   print('Análisis sintáctico exitoso')
   
 except SyntaxError as e:
