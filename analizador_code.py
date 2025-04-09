@@ -514,5 +514,3 @@ class Parser:
           self.coincidir("DELIMITER")
           break
     return NodoFuncionAnidada(nombre, parametros)
-
-    

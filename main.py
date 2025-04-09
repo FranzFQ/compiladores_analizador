@@ -1,19 +1,10 @@
 import json
 from analizador_code import *
+from analisis_semantico import *
 
 texto = """
-int suma (int a, int b) {
-  if (a > b){
-    return a;
-  }
-  return b;
-}
-
-int main (){
+int suma (int a, int b){
   int c = a + b;
-  int a = suma(a, b);
-  for (int i = 0, i < b, i += 1){
-  }
   return c;
 }
 
@@ -61,7 +52,19 @@ try:
   print(codigo_python)
   codigo_asm = arbol_ast.generar_codigo()
   print(codigo_asm)
-  imprimir_ast(arbol_ast)
+  Analizador_semantico = AnalizadorSemantico()
+  analisis = Analizador_semantico.analizar(arbol_ast)
+  
+  print("Variables")
+  for llave in (Analizador_semantico.tabla_simbolos.variables.keys()):
+    valor = Analizador_semantico.tabla_simbolos.variables.get(llave)
+    print(f"{llave}: {valor}")
+
+  print("Funciones")
+  for llave in (Analizador_semantico.tabla_simbolos.funciones.keys()):
+    valor = Analizador_semantico.tabla_simbolos.funciones.get(llave)
+    print(f"{llave}: {valor}")
+
   print('Análisis sintáctico exitoso')
   
 except SyntaxError as e:
