@@ -8,6 +8,14 @@ int suma (int a, int b){
   return c;
 }
 
+int main (){
+  int a = 5;
+  int b = 10;
+  int z = suma(a, b);
+  print("hola");
+  return z;
+}
+
 """
 
 def imprimir_ast(nodo):
@@ -47,23 +55,23 @@ try:
   print('Se inicia el análisis sintáctico')
   parser = Parser(tokens)
   arbol_ast = parser.parsear()
-  print(json.dumps(imprimir_ast(arbol_ast), indent=1))
+  # print(json.dumps(imprimir_ast(arbol_ast), indent=1))
   codigo_python = arbol_ast.traducir()
-  print(codigo_python)
+  # print(codigo_python)
   codigo_asm = arbol_ast.generar_codigo()
   print(codigo_asm)
-  Analizador_semantico = AnalizadorSemantico()
-  analisis = Analizador_semantico.analizar(arbol_ast)
+  # Analizador_semantico = AnalizadorSemantico()
+  # analisis = Analizador_semantico.analizar(arbol_ast)
   
-  print("Variables")
-  for llave in (Analizador_semantico.tabla_simbolos.variables.keys()):
-    valor = Analizador_semantico.tabla_simbolos.variables.get(llave)
-    print(f"{llave}: {valor}")
+  # print("Variables")
+  # for llave in (Analizador_semantico.tabla_simbolos.variables.keys()):
+  #   valor = Analizador_semantico.tabla_simbolos.variables.get(llave)
+  #   print(f"{llave}: {valor}")
 
-  print("Funciones")
-  for llave in (Analizador_semantico.tabla_simbolos.funciones.keys()):
-    valor = Analizador_semantico.tabla_simbolos.funciones.get(llave)
-    print(f"{llave}: {valor}")
+  # print("Funciones")
+  # for llave in (Analizador_semantico.tabla_simbolos.funciones.keys()):
+  #   valor = Analizador_semantico.tabla_simbolos.funciones.get(llave)
+  #   print(f"{llave}: {valor}")
 
   print('Análisis sintáctico exitoso')
   

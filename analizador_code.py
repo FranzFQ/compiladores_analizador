@@ -12,6 +12,8 @@ token_patron = {
     "WHITESPACE": r'\s+'  # Espacios en blanco
 }
 
+declaracion_variables = []
+
 def tokenize(text):
   patron_general = "|".join(f"(?P<{token}>{patron})" for token, patron in token_patron.items())
   patron_regex = re.compile(patron_general)
@@ -49,10 +51,14 @@ class NodoFunciones(NodoAST):
     return text
 
   def generar_codigo(self):
-    codigo = ".data\n"
-    codigo += ".code\n"
+    for f in self.funcion:
+      f.generar_codigo()
+    codigo = ".data\n\n"
+    codigo += "".join(declaracion_variables) + "\n"
+    codigo += ".code\n\n"
+    codigo += ";Inicio del programa\n"
     codigo += "CALL main ; Ejecuta la funcion main\n"
-    codigo += "mov ah, 4ch ; finaliza el programa \nint 21h\n"
+    codigo += "mov ah, 4ch ; finaliza el programa \nint 21h\n\n"
     codigo += "\n\n".join(f.generar_codigo() for f in self.funcion)
     return codigo
   
@@ -96,7 +102,13 @@ class NodoAsignacion(NodoAST):
     codigo = self.expresion.generar_codigo()
     if codigo is None:
       codigo = ""
-    codigo += f"\n    mov [{self.nombre[1]}], ax; guardar resultado en {self.nombre[1]}"
+    if isinstance(self.expresion, NodoNumero):
+      declaracion_variables.append(f"{self.nombre[1]} dw ?\n")
+
+    if isinstance(self.expresion, NodoIdentificador):
+      declaracion_variables.append(f"{self.nombre[1]} dw ?\n")
+
+    codigo += f"\n    mov {self.nombre[1]}, ax; guardar resultado en {self.nombre[1]}"
     return codigo
 
 class NodoOperacion(NodoAST):
@@ -185,7 +197,26 @@ class NodoIf(NodoAST):
       codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    jg a_mayor_b ;salto si ax es mayor que bx\n    jmp fin ;Si ax no es mayor a bx   \n    a_mayor_b: ;Realiza lo demas\n")
       codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
       codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
-
+    elif self.condicion.operador[1] == "<":
+      codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    jl a_menor_b ;salto si ax es menor que bx\n    jmp fin ;Si ax no es menor a bx   \n    a_menor_b: ;Realiza lo demas\n")
+      codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
+      codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
+    elif self.condicion.operador[1] == "==":
+      codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    je a_igual_b ;salto si ax es igual a bx\n    jmp fin ;Si ax no es igual a bx   \n    a_igual_b: ;Realiza lo demas\n")
+      codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
+      codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
+    elif self.condicion.operador[1] == "!=":
+      codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    jne a_diferente_b ;salto si ax es diferente a bx\n    jmp fin ;Si ax no es diferente a bx   \n    a_diferente_b: ;Realiza lo demas\n")
+      codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
+      codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
+    elif self.condicion.operador[1] == ">=":
+      codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    jge a_mayor_igual_b ;salto si ax es mayor o igual a bx\n    jmp fin ;Si ax no es mayor o igual a bx   \n    a_mayor_igual_b: ;Realiza lo demas\n")
+      codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
+      codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
+    elif self.condicion.operador[1] == "<=":
+      codigo.append(f"    cmp ax, bx ; compara ax a con bx\n    jle a_menor_igual_b ;salto si ax es menor o igual a bx\n    jmp fin ;Si ax no es menor o igual a bx   \n    a_menor_igual_b: ;Realiza lo demas\n")
+      codigo.append("    ".join([p.generar_codigo() for p in self.cuerpo]))
+      codigo.append("    fin: ;Realiza todo lo que no este dentro del if")
     return "\n".join(codigo)
 
 class NodoWhile(NodoAST):
@@ -235,7 +266,7 @@ class NodoPrint(NodoAST):
     return f"print ({self.contenido.traducir()})"
 
   def generar_codigo(self):
-    return ""
+    return f"    mov ah, 09h ;Crea el espacio para mostrar\n    mov dx, offset {self.contenido.nombre[1]} + '$';mueve el contenido para que los muestre\n    int 21h; intervencion 21 para que muestre\n"
 
 class NodoRetorno(NodoAST):
   #Nodo que representa la sentencia o instruccion de retorno
@@ -246,6 +277,7 @@ class NodoRetorno(NodoAST):
     return f"return {self.expresion[1]}"
   
   def generar_codigo(self):
+    declaracion_variables.append(f"{self.expresion[1]} dw ?\n")
     return '\n    ret ; retorno desde la subrutina'
 
 class NodoIdentificador(NodoAST):
@@ -257,7 +289,7 @@ class NodoIdentificador(NodoAST):
     return self.nombre[1]
   
   def generar_codigo(self):
-    return f'       mov ax, [{self.nombre[1]}] ; cargar valor de {self.nombre[1]} en ax'
+    return f'    mov ax, [{self.nombre[1]}] ; cargar valor de {self.nombre[1]} en ax'
 
 class NodoNumero(NodoAST):
   #Nodo que representa a un numero
@@ -268,8 +300,7 @@ class NodoNumero(NodoAST):
     return str(self.valor[1])
   
   def generar_codigo(self):
-    print(self.valor)
-    return f'       mov ax, {str(self.valor[1])} ; cargar numero {str(self.valor[1])} en ax'
+    return f'    mov ax, [{str(self.valor[1])}] ; cargar numero {str(self.valor[1])} en ax'
   
 class NodoFuncionAnidada(NodoAST):
   def __init__(self, nombre, parametros):
